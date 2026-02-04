@@ -116,40 +116,33 @@ function updatePlatformScore(elementId, stats) {
 }
 
 // Keep original loadAnalysis function below...
-try {
-    const response = await fetch(`${API_BASE}/api/session/${sessionId}`);
-    const data = await response.json();
+async function loadAnalysis(sessionId) {
+    // First, try loading from localStorage as it's the most reliable on Vercel
+    const localResults = localStorage.getItem('analysisResults');
+    if (localResults) {
+        console.log("Loading from localStorage...");
+        currentResults = JSON.parse(localResults);
+        displayResults({
+            title: 'Sentiment Analysis Result',
+            timestamp: new Date().toISOString(),
+            results: currentResults
+        });
+        return;
+    }
 
-    if (response.ok) {
-        currentResults = data.results;
-        displayResults(data);
-    } else {
-        // Fallback for serverless: Load from localStorage
-        const localResults = localStorage.getItem('analysisResults');
-        if (localResults) {
-            console.log("Loading from localStorage fallback...");
-            currentResults = JSON.parse(localResults);
-            displayResults({
-                title: 'Cached Analysis',
-                timestamp: new Date().toISOString(),
-                results: currentResults
-            });
+    // Fallback: Try API if localStorage is empty
+    try {
+        const response = await fetch(`${API_BASE}/api/session/${sessionId}`);
+        if (response.ok) {
+            const data = await response.json();
+            currentResults = data.results;
+            displayResults(data);
         } else {
             alert('Session not found. Redirecting to home...');
             window.location.href = '/';
         }
-    }
-} catch (error) {
-    // Critical Fallback
-    const localResults = localStorage.getItem('analysisResults');
-    if (localResults) {
-        currentResults = JSON.parse(localResults);
-        displayResults({
-            title: 'Offline Analysis',
-            timestamp: new Date().toISOString(),
-            results: currentResults
-        });
-    } else {
+    } catch (error) {
+        console.error("API Fetch Error:", error);
         alert('Error loading analysis: ' + error.message);
         window.location.href = '/';
     }

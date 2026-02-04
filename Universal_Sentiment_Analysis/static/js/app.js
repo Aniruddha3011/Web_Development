@@ -266,8 +266,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             if (res.ok) {
-                localStorage.setItem('sessionId', data.session_id);
-                localStorage.setItem('analysisResults', JSON.stringify(data.results)); // Store results directly for serverless
+                // For Vercel, we bypass backend sessions and use localStorage
+                const sessionId = 'v-' + Date.now();
+                localStorage.setItem('sessionId', sessionId);
+                localStorage.setItem('analysisResults', JSON.stringify(data.results));
                 localStorage.removeItem('sessionType');
                 window.location.href = '/dashboard';
             } else {
