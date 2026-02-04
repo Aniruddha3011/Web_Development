@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 import os
 import re
 import sys
@@ -118,6 +119,14 @@ def analyze():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Vercel entry point (app variable is exposed)
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Return JSON instead of HTML for HTTP errors."""
+    if isinstance(e, HTTPException):
+        return jsonify(error=str(e.description)), e.code
+    # Non-HTTP exceptions
+    return jsonify(error="Internal Server Error: " + str(e)), 500
+
+# Vercel entry point
 if __name__ == "__main__":
     pass
