@@ -1,6 +1,6 @@
 // Dashboard JavaScript - displays analysis results with charts
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = ''; // Use relative paths for Vercel stability
 
 let currentResults = null;
 let barChart = null;
@@ -116,19 +116,40 @@ function updatePlatformScore(elementId, stats) {
 }
 
 // Keep original loadAnalysis function below...
-async function loadAnalysis(sessionId) {
-    try {
-        const response = await fetch(`${API_BASE}/api/session/${sessionId}`);
-        const data = await response.json();
+try {
+    const response = await fetch(`${API_BASE}/api/session/${sessionId}`);
+    const data = await response.json();
 
-        if (response.ok) {
-            currentResults = data.results;
-            displayResults(data);
+    if (response.ok) {
+        currentResults = data.results;
+        displayResults(data);
+    } else {
+        // Fallback for serverless: Load from localStorage
+        const localResults = localStorage.getItem('analysisResults');
+        if (localResults) {
+            console.log("Loading from localStorage fallback...");
+            currentResults = JSON.parse(localResults);
+            displayResults({
+                title: 'Cached Analysis',
+                timestamp: new Date().toISOString(),
+                results: currentResults
+            });
         } else {
             alert('Session not found. Redirecting to home...');
             window.location.href = '/';
         }
-    } catch (error) {
+    }
+} catch (error) {
+    // Critical Fallback
+    const localResults = localStorage.getItem('analysisResults');
+    if (localResults) {
+        currentResults = JSON.parse(localResults);
+        displayResults({
+            title: 'Offline Analysis',
+            timestamp: new Date().toISOString(),
+            results: currentResults
+        });
+    } else {
         alert('Error loading analysis: ' + error.message);
         window.location.href = '/';
     }

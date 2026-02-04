@@ -54,6 +54,11 @@ def index():
     """Renders the main frontend UI"""
     return render_template('index.html')
 
+@app.route('/dashboard', methods=['GET'])
+def dashboard():
+    """Renders the dashboard report UI"""
+    return render_template('dashboard.html')
+
 @app.route('/predict', methods=['POST'])
 def predict():
     """Handled prediction with robust JSON and logic checks"""

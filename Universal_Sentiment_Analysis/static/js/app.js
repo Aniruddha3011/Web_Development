@@ -1,6 +1,6 @@
 // Main page JavaScript - handles comment input and analysis
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = ''; // Use relative paths for Vercel stability
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 App.js Loaded Successfully!");
@@ -267,6 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (res.ok) {
                 localStorage.setItem('sessionId', data.session_id);
+                localStorage.setItem('analysisResults', JSON.stringify(data.results)); // Store results directly for serverless
                 localStorage.removeItem('sessionType');
                 window.location.href = '/dashboard';
             } else {
