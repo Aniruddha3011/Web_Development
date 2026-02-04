@@ -6,8 +6,6 @@ import re
 import sys
 import uuid
 from datetime import datetime
-from comment_fetcher import fetch_comments
-from creator_analytics import CreatorAnalyzer
 
 # --- Environment Setup ---
 # BASE_DIR should point to the Universal_Sentiment_Analysis folder
@@ -19,6 +17,18 @@ if os.path.basename(current_dir) == 'api':
     BASE_DIR = os.path.dirname(current_dir)
 else:
     BASE_DIR = current_dir
+
+# Add BASE_DIR to sys.path so we can import from the root
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+
+# Now import local modules safely
+try:
+    from comment_fetcher import fetch_comments
+    from creator_analytics import CreatorAnalyzer
+except ImportError as e:
+    print(f"Import Error: {str(e)}")
+    # We will handle missing modules in the routes if needed
 
 # --- App Initialization ---
 app = Flask(__name__, 
