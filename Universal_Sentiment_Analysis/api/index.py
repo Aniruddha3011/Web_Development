@@ -1,15 +1,28 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import os
 import re
+import sys
 
-# --- Minimal App Initialization ---
-# Setting root_path ensures Flask finds 'templates' and 'static' in the project root
+# --- Environment Setup ---
+# BASE_DIR should point to the Universal_Sentiment_Analysis folder
+# If running from api/index.py, it's one level up.
+# If running from app.py, it's the current dir.
+# We'll use a robust detection logic.
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(current_dir) == 'api':
+    BASE_DIR = os.path.dirname(current_dir)
+else:
+    BASE_DIR = current_dir
+
+# --- App Initialization ---
 app = Flask(__name__, 
-            root_path=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            template_folder=os.path.join(BASE_DIR, 'templates'),
+            static_folder=os.path.join(BASE_DIR, 'static'))
 CORS(app)
 
-# --- Lazy Initialization for VADER ---
+# --- Lazy/Safe VADER Initialization ---
+# We use a wrapper to handle any import-time or init-time issues
 _analyzer = None
 
 def get_analyzer():
@@ -18,84 +31,72 @@ def get_analyzer():
         try:
             from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
             _analyzer = SentimentIntensityAnalyzer()
-        except Exception:
+        except Exception as e:
+            # We don't want to crash here, we'll return None and handle it in the route
+            print(f"Analyzer Init Error: {str(e)}")
             return None
     return _analyzer
 
-# --- Self-Contained Cleaning Logic ---
-def clean_text(text):
+# --- Logic Layer ---
+def clean_minimal(text):
     if not text or not isinstance(text, str):
         return ""
-    # Remove HTML tags
+    # Remove HTML, URLs and non-ASCII for maximum stability
     text = re.sub(r'<[^>]*>', '', text)
-    # Remove URLs
     text = re.sub(r'https?://\S+|www\.\S+', '', text)
-    # Remove special emoji-like characters
     text = re.sub(r'[^\x00-\x7F]+', '', text)
     return text.strip().lower()
 
 # --- Routes ---
 
 @app.route('/', methods=['GET'])
-def health_check():
-    """Confirms the API is alive and reachable"""
-    return "Universal Sentiment Analysis API: Status 200 OK (Serverless Optimized)"
+def index():
+    """Confirms API status and prevents FUNCTION_INVOCATION_FAILED"""
+    return "Universal Sentiment Analysis API: Status 200 OK (Serverless Optimized v2.2)"
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """Optimized prediction logic with robust error handling"""
+    """Handled prediction with robust JSON and logic checks"""
     try:
-        # Validate Request
         if not request.is_json:
-            return jsonify({'error': 'Invalid request: Body must be JSON'}), 400
+            return jsonify({'error': 'JSON required'}), 400
         
         data = request.get_json(silent=True)
         if not data or 'text' not in data:
-            return jsonify({'error': 'Missing required "text" field'}), 400
+            return jsonify({'error': 'Missing text field'}), 400
         
         text = data.get('text', '')
         if not text:
-            return jsonify({'sentiment': 'Neutral', 'score': 0, 'status': 'empty_input'})
+            return jsonify({'sentiment': 'Neutral', 'confidence': 0})
 
-        # Get Analyzer
         analyzer = get_analyzer()
         if not analyzer:
-            return jsonify({'error': 'Sentiment engine failed to initialize'}), 500
+            return jsonify({'error': 'Sentiment engine error'}), 500
 
-        # Analyze
-        cleaned_input = clean_text(text)
-        scores = analyzer.polarity_scores(cleaned_input)
+        cleaned = clean_minimal(text)
+        scores = analyzer.polarity_scores(cleaned)
         compound = scores.get('compound', 0)
         
-        # Determine Sentiment
-        if compound >= 0.05:
-            sentiment = 'Positive'
-        elif compound <= -0.05:
-            sentiment = 'Negative'
-        else:
-            sentiment = 'Neutral'
+        sentiment = 'Neutral'
+        if compound >= 0.05: sentiment = 'Positive'
+        elif compound <= -0.05: sentiment = 'Negative'
             
         return jsonify({
             'status': 'success',
             'sentiment': sentiment,
-            'score': compound,
+            'confidence': compound,
             'details': scores
         })
-
     except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'error_type': type(e).__name__,
-            'message': str(e)
-        }), 500
+        return jsonify({'error': str(e)}), 500
 
-# Legacy compatibility route for bulk analyze (if frontend uses it)
+# Legacy route for the frontend
 @app.route('/api/analyze', methods=['POST'])
-def analyze_bulk():
+def analyze():
     try:
         data = request.get_json(silent=True)
         if not data or 'comments' not in data:
-            return jsonify({'error': 'No comments found'}), 400
+            return jsonify({'error': 'No comments'}), 400
         
         comments = data['comments']
         analyzer = get_analyzer()
@@ -103,7 +104,7 @@ def analyze_bulk():
 
         results = {'positive': [], 'negative': [], 'neutral': []}
         for comment in comments:
-            score = analyzer.polarity_scores(clean_text(comment))['compound']
+            score = analyzer.polarity_scores(clean_minimal(comment))['compound']
             if score >= 0.05: results['positive'].append(comment)
             elif score <= -0.05: results['negative'].append(comment)
             else: results['neutral'].append(comment)
@@ -112,4 +113,6 @@ def analyze_bulk():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# NO app.run() - Vercel handles invocation
+# Vercel entry point (app variable is exposed)
+if __name__ == "__main__":
+    pass
