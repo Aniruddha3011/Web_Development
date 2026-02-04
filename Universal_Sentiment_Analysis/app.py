@@ -51,8 +51,8 @@ def clean_minimal(text):
 
 @app.route('/', methods=['GET'])
 def index():
-    """Confirms API status and prevents FUNCTION_INVOCATION_FAILED"""
-    return "Universal Sentiment Analysis API: Status 200 OK (Serverless Optimized v2.2)"
+    """Renders the main frontend UI"""
+    return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
