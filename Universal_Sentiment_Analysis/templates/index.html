@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Sentiment Analysis Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Universal Sentiment Analysis Platform</h1>
+            <p class="subtitle">Analyze audience feedback from any social media platform</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>📊 Analyze Your Comments</h2>
+
+                <div class="mode-toggle"
+                    style="display: flex; gap: 1rem; margin-bottom: 2rem; justify-content: center;">
+                    <button id="singleModeBtn" class="btn btn-primary active-mode">Single Post Analysis</button>
+                    <button id="creatorModeBtn" class="btn btn-secondary">👨‍💻 Creator/Business Analysis</button>
+                </div>
+
+                <div id="singleModeSection">
+                    <p>Paste your comments below (one per line)</p>
+
+                    <div class="input-section">
+                        <label for="urlInput">Analyze from URL (YouTube, Reddit)</label>
+                        <div class="url-input-group">
+                            <input type="text" id="urlInput" placeholder="Paste URL (YouTube, Reddit)..." />
+                            <button id="analyzeUrlBtn" class="btn btn-primary">
+                                <span class="btn-icon">🚀</span> Fetch & Analyze
+                            </button>
+                        </div>
+
+                        <div class="divider">
+                            <span>OR PASTE TEXT MANUALLY (Any Platform)</span>
+                        </div>
+
+                        <label for="title">Analysis Title (Optional)</label>
+                        <input type="text" id="title" placeholder="e.g., My YouTube Video Comments" />
+
+                        <label for="comments">Comments (one per line)</label>
+                        <textarea id="comments" rows="10"
+                            placeholder="Paste your comments here...&#10;Each line will be treated as a separate comment&#10;&#10;Example:&#10;This is amazing!&#10;Great content!&#10;Not bad"></textarea>
+
+                        <div class="button-group">
+                            <button id="analyzeBtn" class="btn btn-primary">
+                                <span class="btn-icon">🔍</span> Analyze Comments
+                            </button>
+                        </div>
+
+                        <input type="file" id="csvFile" accept=".csv" style="display: none;">
+                    </div>
+
+                </div> <!-- End of singleModeSection -->
+
+            </div> <!-- End of singleModeSection -->
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>Analyzing comments...</p>
+    </div>
+
+    <div id="error" class="error" style="display: none;"></div>
+
+    <!-- Creator Mode Section (Hidden by default) -->
+    <div id="creatorModeSection" class="card" style="display: none;">
+        <h2>👨‍💻 Creator Business Analysis</h2>
+        <p>Analyze a creator's overall brand suitability by aggregating multiple posts/videos.</p>
+
+        <div class="input-section">
+            <label for="creatorName">Creator Name / Handle</label>
+            <input type="text" id="creatorName" placeholder="e.g. @TechReviewer" />
+
+            <label>Content URLs (Add YouTube videos, Reddit posts, etc.)</label>
+            <div id="urlList">
+                <div class="url-input-group">
+                    <input type="text" class="creator-url-input" placeholder="Paste URL 1..." />
+                </div>
+                <div class="url-input-group">
+                    <input type="text" class="creator-url-input" placeholder="Paste URL 2..." />
+                </div>
+                <div class="url-input-group">
+                    <input type="text" class="creator-url-input" placeholder="Paste URL 3..." />
+                </div>
+            </div>
+
+            <button id="addUrlBtn" class="btn btn-secondary"
+                style="margin-bottom: 2rem; width: 100%; font-size: 0.9rem;">
+                + Add URL Source
+            </button>
+
+            <button id="analyzeCreatorBtn" class="btn btn-primary" style="width: 100%;">
+                <span class="btn-icon">📈</span> Generate Business Report
+            </button>
+        </div>
+    </div>
+
+    <div class="features">
+        <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h3>Multi-Platform</h3>
+            <p>Works with YouTube, Instagram, Twitter, Facebook, TikTok, and more</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📈</div>
+            <h3>Real-Time Analytics</h3>
+            <p>Instant sentiment analysis with beautiful visualizations</p>
+        </div>
+    </div>
+    </main>
+
+    <footer>
+        <p>Built with ❤️ for content creators and businesses</p>
+    </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

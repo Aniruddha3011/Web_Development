@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Dashboard - Sentiment Analysis</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Analysis Dashboard</h1>
+            <button id="backBtn" class="btn btn-secondary">← Back to Home</button>
+        </header>
+
+        <main>
+            <!-- Creator Business Report (Hidden by default) -->
+            <div id="creatorReport" class="card" style="display: none; border: 2px solid var(--primary-color);">
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <span
+                        style="background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 2rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Business
+                        Intelligence Report</span>
+                    <h1 id="creatorNameDisplay" style="margin-top: 1rem; font-size: 2.5rem;">Creator Name</h1>
+                    <p class="timestamp" id="reportTime"></p>
+                </div>
+
+                <!-- Main Recommendation -->
+                <div class="recommendation-box" id="recBox"
+                    style="padding: 2rem; border-radius: 1rem; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; margin-bottom: 2rem;">
+                    <h2 id="recTitle" style="color: #10b981; margin-bottom: 1rem;">🌟 Excellent Choice</h2>
+                    <p id="recDetail" style="font-size: 1.1rem; line-height: 1.6;">Expected high conversion...</p>
+
+                    <div style="margin-top: 2rem; display: flex; gap: 2rem; align-items: center;">
+                        <div>
+                            <div style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-secondary);">
+                                Brand Safety Score</div>
+                            <div id="safetyScore" style="font-size: 2.5rem; font-weight: bold;">95%</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-secondary);">
+                                Cult Following</div>
+                            <div id="cultLevel" style="font-size: 1.5rem; font-weight: bold;">High</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform Breakdown -->
+                <h3>Platform Breakdown</h3>
+                <div class="stats-grid"
+                    style="margin-top: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="stat-card">
+                        <div class="stat-icon">📺</div>
+                        <h3>YouTube</h3>
+                        <div id="ytScore" class="stat-value">-</div>
+                        <p class="stat-label">Sentiment Score</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🤖</div>
+                        <h3>Reddit</h3>
+                        <div id="redditScore" class="stat-value">-</div>
+                        <p class="stat-label">Sentiment Score</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Standard Analysis Card (ID: standardReport) -->
+            <div id="standardReport" class="card">
+                <h2 id="analysisTitle">Analysis Results</h2>
+                <div class="brand-score-container" id="brandScoreContainer"
+                    style="display: none; margin-top: 1rem; padding: 1.5rem; border-radius: 0.5rem; background: rgba(99, 102, 241, 0.1); border: 1px solid var(--primary-color);">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h3 style="margin-bottom: 0.5rem; color: var(--primary-color);">Brand Suitability Score</h3>
+                            <div style="font-size: 2.5rem; font-weight: bold;" id="brandScoreValue">0%</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div id="brandRecommendation"
+                                style="font-size: 1.2rem; font-weight: 600; padding: 0.5rem 1rem; border-radius: 2rem; background: var(--bg-color); display: inline-block;">
+                                -
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-bg"
+                        style="height: 10px; background: var(--bg-color); border-radius: 5px; margin-top: 1rem; overflow: hidden;">
+                        <div id="brandScoreBar"
+                            style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); transition: width 1s ease-in-out;">
+                        </div>
+                    </div>
+                </div>
+                <p id="analysisTime" class="timestamp" style="margin-top: 1rem;"></p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card positive">
+                    <div class="stat-icon">😊</div>
+                    <div class="stat-value" id="positiveCount">0</div>
+                    <div class="stat-label">Positive</div>
+                </div>
+                <div class="stat-card negative">
+                    <div class="stat-icon">😞</div>
+                    <div class="stat-value" id="negativeCount">0</div>
+                    <div class="stat-label">Negative</div>
+                </div>
+                <div class="stat-card neutral">
+                    <div class="stat-icon">😐</div>
+                    <div class="stat-value" id="neutralCount">0</div>
+                    <div class="stat-label">Neutral</div>
+                </div>
+                <div class="stat-card total">
+                    <div class="stat-icon">💬</div>
+                    <div class="stat-value" id="totalCount">0</div>
+                    <div class="stat-label">Total Comments</div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Sentiment Distribution</h3>
+                    <canvas id="barChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Sentiment Percentage</h3>
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📝 View Comments</h3>
+                <div class="filter-section">
+                    <label for="sentimentFilter">Filter by sentiment:</label>
+                    <select id="sentimentFilter" class="filter-select">
+                        <option value="positive">Positive Comments</option>
+                        <option value="negative">Negative Comments</option>
+                        <option value="neutral">Neutral Comments</option>
+                    </select>
+                </div>
+
+                <div id="commentsContainer" class="comments-container">
+                    <!-- Comments will be loaded here -->
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="exportBtn" class="btn btn-primary">
+                    <span class="btn-icon">📥</span> Export Results
+                </button>
+                <button id="newAnalysisBtn" class="btn btn-secondary">
+                    <span class="btn-icon">🔄</span> New Analysis
+                </button>
+            </div>
+        </main>
+
+        <footer>
+            <p>Built with ❤️ for content creators and businesses</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+
+</html>
