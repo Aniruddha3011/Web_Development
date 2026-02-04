@@ -4,6 +4,10 @@ from werkzeug.exceptions import HTTPException
 import os
 import re
 import sys
+import uuid
+from datetime import datetime
+from comment_fetcher import fetch_comments
+from creator_analytics import CreatorAnalyzer
 
 # --- Environment Setup ---
 # BASE_DIR should point to the Universal_Sentiment_Analysis folder
@@ -118,6 +122,73 @@ def analyze():
         return jsonify({'results': results})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/analyze-url', methods=['POST'])
+def analyze_url():
+    try:
+        data = request.get_json(silent=True)
+        if not data or 'url' not in data:
+            return jsonify({'error': 'No URL provided'}), 400
+        
+        url = data['url']
+        fetch_result, error = fetch_comments(url)
+        if error:
+            return jsonify({'error': error}), 400
+
+        comments = fetch_result['comments']
+        analyzer = get_analyzer()
+        if not analyzer: return jsonify({'error': 'Engine error'}), 500
+
+        results = {'positive': [], 'negative': [], 'neutral': []}
+        for comment in comments:
+            score = analyzer.polarity_scores(clean_minimal(comment))['compound']
+            if score >= 0.05: results['positive'].append(comment)
+            elif score <= -0.05: results['negative'].append(comment)
+            else: results['neutral'].append(comment)
+            
+        return jsonify({
+            'session_id': 'v-' + str(uuid.uuid4())[:8],
+            'results': results,
+            'title': fetch_result.get('title', 'Analysis Results')
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/creator/analyze', methods=['POST'])
+def analyze_creator():
+    try:
+        data = request.get_json(silent=True)
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Missing name'}), 400
+        
+        ca = CreatorAnalyzer()
+        results = ca.analyze_creator(
+            name=data.get('name'), 
+            urls=data.get('urls', []), 
+            manual_data=data.get('manual_data', [])
+        )
+        
+        return jsonify({
+            'session_id': 'c-' + str(uuid.uuid4())[:8],
+            'results': results['stats'], # Compatibility with dashboard
+            'full_data': results
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/demo', methods=['GET'])
+def demo():
+    # Simple demo data
+    results = {
+        'positive': ['This is amazing!', 'Love the service.'],
+        'negative': ['Could be better.', 'Too slow.'],
+        'neutral': ['Its okay.', 'Standard.']
+    }
+    return jsonify({
+        'session_id': 'demo-123',
+        'results': results,
+        'title': 'Demo Analysis'
+    })
 
 @app.errorhandler(Exception)
 def handle_exception(e):

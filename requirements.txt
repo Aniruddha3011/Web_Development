@@ -4,3 +4,5 @@ vaderSentiment
 requests
 beautifulsoup4
 lxml
+instaloader
+youtube-comment-downloader

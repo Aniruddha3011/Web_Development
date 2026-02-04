@@ -138,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.ok) {
                     localStorage.setItem('sessionId', data.session_id);
                     localStorage.setItem('sessionType', 'creator');
+                    localStorage.setItem('analysisResults', JSON.stringify(data.results));
                     window.location.href = '/dashboard';
                 } else {
                     showError(data.error || 'Creator analysis failed.');
@@ -172,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
                 if (res.ok) {
                     localStorage.setItem('sessionId', data.session_id);
+                    localStorage.setItem('analysisResults', JSON.stringify(data.results));
                     // Reset session type to default/single
                     localStorage.removeItem('sessionType');
                     window.location.href = '/dashboard';
@@ -213,6 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
                 if (res.ok) {
                     localStorage.setItem('sessionId', data.session_id);
+                    localStorage.setItem('analysisResults', JSON.stringify(data.results));
                     localStorage.removeItem('sessionType');
                     window.location.href = '/dashboard';
                 } else {
