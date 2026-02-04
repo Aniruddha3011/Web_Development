@@ -22,14 +22,6 @@ else:
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-# Now import local modules safely
-try:
-    from comment_fetcher import fetch_comments
-    from creator_analytics import CreatorAnalyzer
-except ImportError as e:
-    print(f"Import Error: {str(e)}")
-    # We will handle missing modules in the routes if needed
-
 # --- App Initialization ---
 app = Flask(__name__, 
             template_folder=os.path.join(BASE_DIR, 'templates'),
@@ -141,6 +133,12 @@ def analyze_url():
             return jsonify({'error': 'No URL provided'}), 400
         
         url = data['url']
+        
+        try:
+            from comment_fetcher import fetch_comments
+        except ImportError:
+            return jsonify({'error': 'Comment fetcher module failed to load. Check Vercel logs.'}), 500
+
         fetch_result, error = fetch_comments(url)
         if error:
             return jsonify({'error': error}), 400
@@ -171,6 +169,11 @@ def analyze_creator():
         if not data or 'name' not in data:
             return jsonify({'error': 'Missing name'}), 400
         
+        try:
+            from creator_analytics import CreatorAnalyzer
+        except ImportError:
+            return jsonify({'error': 'Creator analytics module failed to load. Check Vercel logs.'}), 500
+
         ca = CreatorAnalyzer()
         results = ca.analyze_creator(
             name=data.get('name'), 
