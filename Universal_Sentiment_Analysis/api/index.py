@@ -1,99 +1,91 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import os
 import sys
 
-# Add the current directory to path so relative imports work on Vercel
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from text_utils import clean_text
-
-app = Flask(__name__, 
-            template_folder='../templates', 
-            static_folder='../static')
+# Minimal App Initialization
+app = Flask(__name__)
 CORS(app)
 
-# Initialize VADER directly (No pickle, no downloads)
-analyzer = SentimentIntensityAnalyzer()
+# Global analyzer variable for lazy initialization (Cold-start safety)
+_analyzer = None
 
-@app.route('/')
-def home():
-    """Confirms the API is live - Requirement #7"""
-    return "Universal Sentiment Analysis API is Live and Running on Vercel!"
+def get_analyzer():
+    """Lazily initialize the VADER analyzer to avoid heavy import logic on every cold start"""
+    global _analyzer
+    if _analyzer is None:
+        try:
+            from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+            _analyzer = SentimentIntensityAnalyzer()
+        except ImportError:
+            # Fallback or error handled at request time
+            return None
+    return _analyzer
+
+def safe_clean(text):
+    """Minimal, safe text cleaning for serverless without heavy regex overhead"""
+    if not text or not isinstance(text, str):
+        return ""
+    # Remove HTML and URLs simply
+    import re
+    text = re.sub(r'<[^>]*>', '', text)
+    text = re.sub(r'http\S+', '', text)
+    return text.strip().lower()
+
+@app.route('/', methods=['GET'])
+def root():
+    """Simple health check - Mandatory Requirement #8"""
+    return "Universal Sentiment Analysis API: Status OK (Serverless Mode)"
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """Single text prediction - Requirement #8"""
+    """Robust prediction route - Mandatory Requirement #8"""
     try:
-        data = request.get_json()
+        # 1. Safe JSON extraction
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+        
+        data = request.get_json(silent=True)
         if not data or 'text' not in data:
-            return jsonify({'error': 'No text provided'}), 400
+            return jsonify({'error': 'Missing "text" field in JSON body'}), 400
         
-        text = data['text']
-        cleaned = clean_text(text)
+        text = data.get('text', '')
+        if not text:
+            return jsonify({'sentiment': 'Neutral', 'score': 0, 'note': 'Empty text'}), 200
+
+        # 2. Get analyzer safely
+        analyzer = get_analyzer()
+        if not analyzer:
+            return jsonify({'error': 'Sentiment engine failed to initialize'}), 500
+
+        # 3. Clean and Analyze
+        cleaned = safe_clean(text)
         scores = analyzer.polarity_scores(cleaned)
+        compound = scores.get('compound', 0)
         
-        # Categorize
-        compound = scores['compound']
+        # 4. Determine Sentiment
         if compound >= 0.05:
             sentiment = 'Positive'
         elif compound <= -0.05:
             sentiment = 'Negative'
         else:
             sentiment = 'Neutral'
-        
-        return jsonify({
-            'text': text,
-            'sentiment': sentiment,
-            'scores': scores
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/analyze', methods=['POST'])
-def analyze_list():
-    """Legacy compatibility route for bulk analysis"""
-    try:
-        data = request.get_json()
-        if not data or 'comments' not in data:
-            return jsonify({'error': 'No comments provided'}), 400
-        
-        comments = data['comments']
-        positive = []
-        negative = []
-        neutral = []
-        
-        for comment in comments:
-            cleaned = clean_text(comment)
-            score = analyzer.polarity_scores(cleaned)['compound']
             
-            if score >= 0.05:
-                positive.append(comment)
-            elif score <= -0.05:
-                negative.append(comment)
-            else:
-                neutral.append(comment)
-        
         return jsonify({
-            'results': {
-                'positive': positive,
-                'negative': negative,
-                'neutral': neutral,
-                'counts': {
-                    'positive': len(positive),
-                    'negative': len(negative),
-                    'neutral': len(neutral),
-                    'total': len(comments)
-                }
-            }
+            'status': 'success',
+            'sentiment': sentiment,
+            'confidence': compound,
+            'details': scores
         })
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Catch-all for runtime stability
+        return jsonify({
+            'status': 'error',
+            'message': 'Internal processing error',
+            'trace': str(e)
+        }), 500
 
-# Note: Scrapers (YouTube/Reddit/Instagram) removed per Requirement #3
-# Note: app.run() removed per Requirement #2
-
-# Expose app for Vercel
-if __name__ == "__main__":
-    # This is only for local testing, Vercel uses the 'app' variable directly
-    pass
+# STRICT: No app.run() here.
+# STRICT: No scrapers, matplotlib, or nltk calls.
+# STRICT: VADER is used directly via vaderSentiment library.
