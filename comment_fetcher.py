@@ -82,6 +82,7 @@ def fetch_reddit_comments(url):
     """
     Fetch comments from Reddit post using PRAW (Official API)
     """
+    error_context = "Unknown Error"
     try:
         import praw
         reddit = praw.Reddit(
@@ -98,8 +99,9 @@ def fetch_reddit_comments(url):
         
         if comments:
             return {'title': submission.title, 'comments': comments}, None
-    except Exception as praw_err:
-        print(f"PRAW Error: {str(praw_err)}")
+    except Exception as e:
+        error_context = f"PRAW Error: {str(e)}"
+        print(error_context)
 
     # JSON Fallback
     try:
@@ -113,9 +115,9 @@ def fetch_reddit_comments(url):
             comments = [c for c in comments if c and c not in ['[deleted]', '[removed]']]
             if comments:
                 return {'title': title, 'comments': comments}, None
-        return None, f"Reddit blocked (403/429). (PRAW: {str(praw_err)})"
+        return None, f"Reddit blocked access (403). ({error_context})"
     except Exception as e:
-        return None, f"Reddit JSON Error: {str(e)}"
+        return None, f"Reddit JSON Error: {str(e)} ({error_context})"
 
 
 def fetch_youtube_comments(url):
