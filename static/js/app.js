@@ -138,7 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.ok) {
                     localStorage.setItem('sessionId', data.session_id);
                     localStorage.setItem('sessionType', 'creator');
+                    // For creator, results mapping is already handled by displayCreatorResults in dashboard.js
                     localStorage.setItem('analysisResults', JSON.stringify(data.results));
+                    localStorage.setItem('creatorFullData', JSON.stringify(data.full_data));
                     window.location.href = '/dashboard';
                 } else {
                     showError(data.error || 'Creator analysis failed.');

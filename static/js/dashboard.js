@@ -25,6 +25,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadCreatorAnalysis(sessionId) {
+    // Try localStorage first
+    const localFullData = localStorage.getItem('creatorFullData');
+    if (localFullData) {
+        const fullData = JSON.parse(localFullData);
+        // Hide standard report, show creator report
+        document.getElementById('standardReport').style.display = 'none';
+        document.getElementById('creatorReport').style.display = 'block';
+
+        displayCreatorResults(fullData);
+        return;
+    }
+
     try {
         const response = await fetch(`${API_BASE}/api/session/${sessionId}`);
         const data = await response.json();
@@ -149,8 +161,17 @@ async function loadAnalysis(sessionId) {
 }
 
 function displayResults(data) {
-    const { title, timestamp, results } = data;
-    const { counts } = results;
+    const title = data.title || 'Sentiment Analysis Result';
+    const timestamp = data.timestamp || new Date().toISOString();
+    const results = data.results;
+
+    // Standardize counts: Check in results.counts or results directly
+    let counts = results.counts || {
+        positive: (results.positive || []).length,
+        negative: (results.negative || []).length,
+        neutral: (results.neutral || []).length,
+        total: (results.positive || []).length + (results.negative || []).length + (results.neutral || []).length
+    };
 
     // Update title and timestamp
     document.getElementById('analysisTitle').textContent = title;
