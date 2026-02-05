@@ -80,49 +80,66 @@ def fetch_instagram_comments(url):
 
 def fetch_reddit_comments(url):
     """
-    Fetch comments from Reddit post using JSON endpoint (No API key needed)
+    Fetch comments from Reddit post using PRAW (Official API)
+    Falls back to JSON endpoint if PRAW fails.
     """
-    # Ensure URL ends with .json
+    # 1. Try PRAW first (Most reliable for 403 issues)
+    try:
+        import praw
+        reddit = praw.Reddit(
+            client_id="9jVRT3NZnasn-5TY0fnSOA",
+            client_secret="97K3G8C7C57LCEfNh5N-9IQ6HTZ_FQ",
+            user_agent="sentiment_app_by_u/SeaMany4405",
+            username="SeaMany4405",
+            password="Bhushan@2025"
+        )
+        submission = reddit.submission(url=url)
+        # Ensure we load all comments
+        submission.comments.replace_more(limit=0)
+        comments = [comment.body for comment in submission.comments.list()]
+        
+        return {
+            'title': submission.title,
+            'comments': comments
+        }, None
+    except Exception as praw_err:
+        print(f"PRAW Error: {str(praw_err)}")
+        # If PRAW fails (e.g. invalid credentials), try JSON fallback
+
+    # 2. JSON Fallback with Improved Headers
     clean_url = url.split('?')[0]
     if not clean_url.endswith('.json'):
-        if clean_url.endswith('/'):
-            json_url = clean_url + '.json'
-        else:
-            json_url = clean_url + '/.json'
+        json_url = clean_url.rstrip('/') + '/.json'
     else:
         json_url = clean_url
 
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
     }
 
     try:
-        response = requests.get(json_url, headers=headers)
-        if response.status_code != 200:
-            return None, f"Failed to fetch Reddit data: Status {response.status_code}"
-
-        data = response.json()
+        response = requests.get(json_url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            post_data = data[0]['data']['children'][0]['data']
+            title = post_data.get('title', 'Reddit Post')
+            
+            comments_data = data[1]['data']['children']
+            comments = []
+            for child in comments_data:
+                if child['kind'] == 't1':
+                    body = child['data'].get('body')
+                    if body and body not in ['[deleted]', '[removed]']:
+                        comments.append(body)
+            
+            if comments:
+                return {'title': title, 'comments': comments}, None
         
-        # Reddit JSON structure: [post_listing, comment_listing]
-        post_data = data[0]['data']['children'][0]['data']
-        title = post_data.get('title', 'Reddit Post')
-        
-        comments_data = data[1]['data']['children']
-        comments = []
-        
-        for child in comments_data:
-            if child['kind'] == 't1':  # t1 is comment
-                body = child['data'].get('body')
-                if body and body != '[deleted]' and body != '[removed]':
-                    comments.append(body)
-                    
-        return {
-            'title': title,
-            'comments': comments
-        }, None
+        return None, f"Reddit access blocked (403). Please Copy & Paste comments manually. (PRAW Error: {str(praw_err)})"
 
     except Exception as e:
-        return None, str(e)
+        return None, f"Failed to fetch Reddit: {str(e)}"
 
 
 def fetch_youtube_comments(url):
