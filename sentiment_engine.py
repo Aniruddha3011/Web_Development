@@ -10,10 +10,20 @@ from text_processor import clean
 class SentimentAnalyzer:
     """Wrapper for VADER sentiment model"""
     
-    def __init__(self, model_path='model_pickle'):
-        """Load the pre-trained VADER model"""
-        with open(model_path, 'rb') as f:
-            self.model = pickle.load(f)
+    def __init__(self, model_path=None):
+        """Lazy init VADER model"""
+        self._model = None
+
+    @property
+    def model(self):
+        if self._model is None:
+            try:
+                from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+                self._model = SentimentIntensityAnalyzer()
+            except ImportError:
+                # Fallback to a mock with basic logic if needed, but it should be in requirements
+                return None
+        return self._model
     
     def analyze_comments(self, comments):
         """
@@ -36,12 +46,15 @@ class SentimentAnalyzer:
         for i, cleaned_comment in enumerate(cleaned_comments):
             try:
                 # Get sentiment score using VADER
-                score = self.model.polarity_scores(cleaned_comment)['compound']
+                if self.model:
+                    score = self.model.polarity_scores(cleaned_comment)['compound']
+                else:
+                    score = 0 # Neutral fallback if no model
                 
                 # Categorize based on score
-                if score > 0:
+                if score >= 0.05:
                     positive.append(comments[i])
-                elif score < 0:
+                elif score <= -0.05:
                     negative.append(comments[i])
                 else:
                     neutral.append(comments[i])
@@ -61,21 +74,11 @@ class SentimentAnalyzer:
             }
         }
 
-        # Calculate Brand Suitability Score
-        # Formula: (Positive + Neutral) / Total * 100
-        total_count = len(comments)
-        if total_count > 0:
-            positive_count = len(positive)
-            neutral_count = len(neutral)
-            brand_score = ((positive_count + neutral_count) / total_count) * 100
-        else:
-            brand_score = 0
-            
-        result['brand_score'] = round(brand_score, 1)
-        result['brand_recommendation'] = "Excellent for Brand Collaboration! 🌟" if brand_score > 80 else "Needs Improvement for Promotions ⚠️"
-        
-        return result
+    def predict_single(self, text):
         """Get sentiment score for a single text"""
+        if not self.model:
+            return {'compound': 0, 'pos': 0, 'neg': 0, 'neu': 1}
+        from text_processor import clean
         cleaned = clean(text)
         try:
             return self.model.polarity_scores(cleaned)
