@@ -25,9 +25,8 @@
                     <button id="creatorModeBtn" class="btn btn-secondary">👨‍💻 Creator/Business Analysis</button>
                 </div>
 
+                <!-- Single Mode Section -->
                 <div id="singleModeSection">
-                    <p>Paste your comments below (one per line)</p>
-
                     <div class="input-section">
                         <label for="urlInput">Analyze from URL (YouTube, Reddit)</label>
                         <div class="url-input-group">
@@ -46,20 +45,69 @@
 
                         <label for="comments">Comments (one per line)</label>
                         <textarea id="comments" rows="10"
-                            placeholder="Paste your comments here...&#10;Each line will be treated as a separate comment&#10;&#10;Example:&#10;This is amazing!&#10;Great content!&#10;Not bad"></textarea>
+                            placeholder="Paste your comments here...&#10;Each line will be treated as a separate comment"></textarea>
 
                         <div class="button-group">
                             <button id="analyzeBtn" class="btn btn-primary">
                                 <span class="btn-icon">🔍</span> Analyze Comments
                             </button>
                         </div>
-
-                        <input type="file" id="csvFile" accept=".csv" style="display: none;">
                     </div>
+                </div>
 
-                </div> <!-- End of singleModeSection -->
+                <!-- Creator Mode Section -->
+                <div id="creatorModeSection" style="display: none;">
+                    <div class="input-section">
+                        <label for="creatorName">Creator Name / Handle</label>
+                        <input type="text" id="creatorName" placeholder="e.g. @TechReviewer" />
 
-            </div> <!-- End of singleModeSection -->
+                        <label>Content Sources (URLs or Manual Text)</label>
+                        <div id="urlList">
+                            <div class="url-input-group">
+                                <input type="text" class="creator-url-input"
+                                    placeholder="Paste URL (YouTube/Reddit)..." />
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button id="addUrlBtn" class="btn btn-secondary" style="flex: 1; font-size: 0.85rem;">
+                                + Add URL
+                            </button>
+                            <button id="addManualBtn" class="btn btn-secondary" style="flex: 1; font-size: 0.85rem;">
+                                + Add Manual Set
+                            </button>
+                        </div>
+
+                        <p
+                            style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                            💡 **Instagram/TikTok Note:** Since these platforms often block bots, we recommend using "+
+                            Add Manual Set" and pasting the comments directly.
+                        </p>
+
+                        <button id="analyzeCreatorBtn" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">
+                            <span class="btn-icon">📈</span> Generate Business Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>Multi-Platform</h3>
+                    <p>Works with YouTube, Reddit, Instagram, TikTok, and more</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3>Real-Time Analytics</h3>
+                    <p>Instant sentiment analysis with beautiful visualizations</p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Built with ❤️ for content creators and businesses</p>
+        </footer>
     </div>
 
     <div id="loading" class="loading" style="display: none;">
@@ -68,58 +116,6 @@
     </div>
 
     <div id="error" class="error" style="display: none;"></div>
-
-    <!-- Creator Mode Section (Hidden by default) -->
-    <div id="creatorModeSection" class="card" style="display: none;">
-        <h2>👨‍💻 Creator Business Analysis</h2>
-        <p>Analyze a creator's overall brand suitability by aggregating multiple posts/videos.</p>
-
-        <div class="input-section">
-            <label for="creatorName">Creator Name / Handle</label>
-            <input type="text" id="creatorName" placeholder="e.g. @TechReviewer" />
-
-            <label>Content URLs (Add YouTube videos, Reddit posts, etc.)</label>
-            <div id="urlList">
-                <div class="url-input-group">
-                    <input type="text" class="creator-url-input" placeholder="Paste URL 1..." />
-                </div>
-                <div class="url-input-group">
-                    <input type="text" class="creator-url-input" placeholder="Paste URL 2..." />
-                </div>
-                <div class="url-input-group">
-                    <input type="text" class="creator-url-input" placeholder="Paste URL 3..." />
-                </div>
-            </div>
-
-            <button id="addUrlBtn" class="btn btn-secondary"
-                style="margin-bottom: 2rem; width: 100%; font-size: 0.9rem;">
-                + Add URL Source
-            </button>
-
-            <button id="analyzeCreatorBtn" class="btn btn-primary" style="width: 100%;">
-                <span class="btn-icon">📈</span> Generate Business Report
-            </button>
-        </div>
-    </div>
-
-    <div class="features">
-        <div class="feature-card">
-            <div class="feature-icon">🌐</div>
-            <h3>Multi-Platform</h3>
-            <p>Works with YouTube, Instagram, Twitter, Facebook, TikTok, and more</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon">📈</div>
-            <h3>Real-Time Analytics</h3>
-            <p>Instant sentiment analysis with beautiful visualizations</p>
-        </div>
-    </div>
-    </main>
-
-    <footer>
-        <p>Built with ❤️ for content creators and businesses</p>
-    </footer>
-    </div>
 
     <script src="/static/js/app.js"></script>
 </body>

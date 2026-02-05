@@ -25,6 +25,13 @@
                         Intelligence Report</span>
                     <h1 id="creatorNameDisplay" style="margin-top: 1rem; font-size: 2.5rem;">Creator Name</h1>
                     <p class="timestamp" id="reportTime"></p>
+
+                    <!-- Error Alert Box -->
+                    <div id="scrapingErrors" class="alert-error"
+                        style="display: none; margin-top: 1.5rem; text-align: left; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; padding: 1rem; border-radius: 0.5rem;">
+                        <strong style="display: block; margin-bottom: 0.5rem;">⚠️ Some sources failed to load:</strong>
+                        <ul id="errorList" style="margin-top: 0.5rem; padding-left: 1.5rem; font-size: 0.9rem;"></ul>
+                    </div>
                 </div>
 
                 <!-- Main Recommendation -->

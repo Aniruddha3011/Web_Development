@@ -64,6 +64,20 @@ function displayCreatorResults(data) {
     document.getElementById('creatorNameDisplay').textContent = creator_name;
     document.getElementById('reportTime').textContent = `Generated on ${new Date(timestamp).toLocaleString()}`;
 
+    // Show Errors if any
+    const errorBox = document.getElementById('scrapingErrors');
+    const errorList = document.getElementById('errorList');
+    if (data.errors && data.errors.length > 0) {
+        errorBox.style.display = 'block';
+        errorList.innerHTML = data.errors.map(err => `<li>${escapeHtml(err)}</li>`).join('');
+        // Highlight why it might be empty
+        if (data.stats.total_count === 0) {
+            errorList.innerHTML += `<li style="margin-top:0.5rem; font-weight:bold;">💡 Tip: If Instagram/YouTube failed, please use the "Add Manual" button and paste comments directly.</li>`;
+        }
+    } else {
+        errorBox.style.display = 'none';
+    }
+
     // Main Rec
     const recBox = document.getElementById('recBox');
     const recTitle = document.getElementById('recTitle');
