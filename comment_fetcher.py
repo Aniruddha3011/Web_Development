@@ -81,32 +81,50 @@ def fetch_instagram_comments(url):
 def fetch_reddit_comments(url):
     """
     Fetch comments from Reddit post using PRAW (Official API)
+    Tries multiple modes: Authenticated -> Read-Only -> JSON Fallback
     """
-    error_context = "Unknown Error"
-    try:
-        import praw
-        reddit = praw.Reddit(
-            client_id="9jVRT3NZnasn-5TY0fnSOA",
-            client_secret="97K3G8C7C57LCEfNh5N-9IQ6HTZ_FQ",
-            user_agent="sentiment_app_by_u/SeaMany4405",
-            username="SeaMany4405",
-            password="Bhushan@2025",
-            requestor_kwargs={'timeout': 10}
-        )
-        submission = reddit.submission(url=url)
-        submission.comments.replace_more(limit=0)
-        comments = [comment.body for comment in submission.comments.list()[:100]]
-        
-        if comments:
-            return {'title': submission.title, 'comments': comments}, None
-    except Exception as e:
-        error_context = f"PRAW Error: {str(e)}"
-        print(error_context)
+    credentials = {
+        "client_id": "9jVRT3NZnasn-5TY0fnSOA",
+        "client_secret": "97K3G8C7C57LCEfNh5N-9IQ6HTZ_FQ",
+        "user_agent": "sentiment_app_by_u/SeaMany4405"
+    }
+    
+    # 1. Try PRAW (Official API)
+    import praw
+    for mode in ['authenticated', 'read-only']:
+        try:
+            if mode == 'authenticated':
+                reddit = praw.Reddit(
+                    **credentials,
+                    username="SeaMany4405",
+                    password="Bhushan@2025",
+                    requestor_kwargs={'timeout': 10}
+                )
+            else:
+                # Read-Only doesn't require username/password and often bypasses login errors
+                reddit = praw.Reddit(
+                    **credentials,
+                    requestor_kwargs={'timeout': 10}
+                )
 
-    # JSON Fallback
+            submission = reddit.submission(url=url)
+            submission.comments.replace_more(limit=0)
+            comments = [comment.body for comment in submission.comments.list()[:100]]
+            
+            if comments:
+                return {'title': submission.title, 'comments': comments}, None
+        except Exception as e:
+            print(f"Reddit PRAW {mode} failed: {str(e)}")
+            continue
+
+    # 2. JSON Fallback (Stealth Mode)
     try:
-        clean_url = url.split('?')[0].rstrip('/') + '.json'
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'}
+        clean_url = url.split('?')[0].rstrip('/') + '.json?limit=100'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
+            'Accept': 'application/json',
+            'Referer': 'https://www.google.com/'
+        }
         res = requests.get(clean_url, headers=headers, timeout=10)
         if res.status_code == 200:
             data = res.json()
@@ -115,9 +133,10 @@ def fetch_reddit_comments(url):
             comments = [c for c in comments if c and c not in ['[deleted]', '[removed]']]
             if comments:
                 return {'title': title, 'comments': comments}, None
-        return None, f"Reddit blocked access (403). ({error_context})"
+        
+        return None, "Reddit is temporarily blocking our server. Please try again in 5 minutes or use a different URL."
     except Exception as e:
-        return None, f"Reddit JSON Error: {str(e)} ({error_context})"
+        return None, f"Final Reddit Access Error: {str(e)}"
 
 
 def fetch_youtube_comments(url):
