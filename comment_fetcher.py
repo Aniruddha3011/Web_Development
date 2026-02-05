@@ -81,9 +81,7 @@ def fetch_instagram_comments(url):
 def fetch_reddit_comments(url):
     """
     Fetch comments from Reddit post using PRAW (Official API)
-    Falls back to JSON endpoint if PRAW fails.
     """
-    # 1. Try PRAW first (Most reliable for 403 issues)
     try:
         import praw
         reddit = praw.Reddit(
@@ -91,67 +89,40 @@ def fetch_reddit_comments(url):
             client_secret="97K3G8C7C57LCEfNh5N-9IQ6HTZ_FQ",
             user_agent="sentiment_app_by_u/SeaMany4405",
             username="SeaMany4405",
-            password="Bhushan@2025"
+            password="Bhushan@2025",
+            requestor_kwargs={'timeout': 10}
         )
         submission = reddit.submission(url=url)
-        # Ensure we load all comments
         submission.comments.replace_more(limit=0)
-        comments = [comment.body for comment in submission.comments.list()]
+        comments = [comment.body for comment in submission.comments.list()[:100]]
         
-        return {
-            'title': submission.title,
-            'comments': comments
-        }, None
+        if comments:
+            return {'title': submission.title, 'comments': comments}, None
     except Exception as praw_err:
         print(f"PRAW Error: {str(praw_err)}")
-        # If PRAW fails (e.g. invalid credentials), try JSON fallback
 
-    # 2. JSON Fallback with Improved Headers
-    clean_url = url.split('?')[0]
-    if not clean_url.endswith('.json'):
-        json_url = clean_url.rstrip('/') + '/.json'
-    else:
-        json_url = clean_url
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
-    }
-
+    # JSON Fallback
     try:
-        response = requests.get(json_url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            post_data = data[0]['data']['children'][0]['data']
-            title = post_data.get('title', 'Reddit Post')
-            
-            comments_data = data[1]['data']['children']
-            comments = []
-            for child in comments_data:
-                if child['kind'] == 't1':
-                    body = child['data'].get('body')
-                    if body and body not in ['[deleted]', '[removed]']:
-                        comments.append(body)
-            
+        clean_url = url.split('?')[0].rstrip('/') + '.json'
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'}
+        res = requests.get(clean_url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            title = data[0]['data']['children'][0]['data']['title']
+            comments = [c['data'].get('body') for c in data[1]['data']['children'] if c['kind'] == 't1']
+            comments = [c for c in comments if c and c not in ['[deleted]', '[removed]']]
             if comments:
                 return {'title': title, 'comments': comments}, None
-        
-        return None, f"Reddit access blocked (403). Please Copy & Paste comments manually. (PRAW Error: {str(praw_err)})"
-
+        return None, f"Reddit blocked (403/429). (PRAW: {str(praw_err)})"
     except Exception as e:
-        return None, f"Failed to fetch Reddit: {str(e)}"
+        return None, f"Reddit JSON Error: {str(e)}"
 
 
 def fetch_youtube_comments(url):
     """
     Fetch comments from YouTube video using youtube-comment-downloader
     """
-    downloader = YoutubeCommentDownloader()
-    comments = []
-    
     try:
-        # Extract video ID
-        # Supports: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/shorts/ID
         video_id = None
         if 'youtu.be' in url:
             video_id = url.split('/')[-1].split('?')[0]
@@ -163,8 +134,17 @@ def fetch_youtube_comments(url):
         if not video_id:
             return None, "Could not identify YouTube video ID"
 
-        # Fetch comments (limit to recent 200 to be fast)
+        # Use a session with a realistic user agent
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'
+        })
+        
+        downloader = YoutubeCommentDownloader()
+        comments = []
         count = 0
+        
+        # YoutubeCommentDownloader internally handles fetching
         generator = downloader.get_comments(video_id)
         
         for comment in generator:
@@ -172,16 +152,19 @@ def fetch_youtube_comments(url):
             if text:
                 comments.append(text)
                 count += 1
-                if count >= 200:  # Limit for performance
+                if count >= 100: # Limit for speed
                     break
         
+        if not comments:
+             return None, "YouTube returned 0 comments. This might be a restriction or a private video."
+
         return {
             'title': f"YouTube Video ({video_id})",
             'comments': comments
         }, None
 
     except Exception as e:
-        return None, str(e)
+        return None, f"YouTube Error: {str(e)}"
 
 
 def fetch_comments(url):
