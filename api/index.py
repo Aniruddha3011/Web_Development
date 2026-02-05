@@ -136,8 +136,8 @@ def analyze_url():
         
         try:
             from comment_fetcher import fetch_comments
-        except ImportError:
-            return jsonify({'error': 'Comment fetcher module failed to load. Check Vercel logs.'}), 500
+        except Exception as e:
+            return jsonify({'error': f'Module Load Error (fetcher): {str(e)}'}), 500
 
         fetch_result, error = fetch_comments(url)
         if error:
@@ -171,8 +171,8 @@ def analyze_creator():
         
         try:
             from creator_analytics import CreatorAnalyzer
-        except ImportError:
-            return jsonify({'error': 'Creator analytics module failed to load. Check Vercel logs.'}), 500
+        except Exception as e:
+            return jsonify({'error': f'Module Load Error (creator): {str(e)}'}), 500
 
         ca = CreatorAnalyzer()
         results = ca.analyze_creator(
