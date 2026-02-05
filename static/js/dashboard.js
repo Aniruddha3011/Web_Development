@@ -381,31 +381,148 @@ function setupEventListeners() {
     });
 }
 
-function exportResults() {
-    const { counts } = currentResults;
-    const title = document.getElementById('analysisTitle').textContent;
+async function exportResults() {
+    if (!currentResults) {
+        alert("No results found to export. Please run an analysis first.");
+        return;
+    }
 
-    let csv = 'Sentiment,Count\n';
-    csv += `Positive,${counts.positive}\n`;
-    csv += `Negative,${counts.negative}\n`;
-    csv += `Neutral,${counts.neutral}\n`;
-    csv += `Total,${counts.total}\n\n`;
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
 
-    csv += 'Sentiment,Comment\n';
+        // Handle different data structures (Creator vs Single)
+        let counts = {};
+        let resultsObj = currentResults;
 
-    ['positive', 'negative', 'neutral'].forEach(sentiment => {
-        currentResults[sentiment].forEach(comment => {
-            csv += `${sentiment},"${comment.replace(/"/g, '""')}"\n`;
+        // Normalize results for the PDF
+        if (currentResults.stats) {
+            // Creator analytics structure
+            counts = {
+                positive: (currentResults.positive || []).length,
+                negative: (currentResults.negative || []).length,
+                neutral: (currentResults.neutral || []).length,
+                total: currentResults.total_count || 0
+            };
+        } else {
+            // Single analysis structure
+            counts = {
+                positive: (currentResults.positive || []).length,
+                negative: (currentResults.negative || []).length,
+                neutral: (currentResults.neutral || []).length,
+                total: ((currentResults.positive || []).length + (currentResults.negative || []).length + (currentResults.neutral || []).length)
+            };
+        }
+
+        const titleText = document.getElementById('analysisTitle')?.textContent || 'Sentiment Analysis Report';
+
+        // --- PDF DESIGN ---
+        // Header
+        doc.setFontSize(22);
+        doc.setTextColor(67, 79, 235);
+        doc.text('Sentiment Analysis Report', 105, 20, { align: 'center' });
+
+        doc.setDrawColor(67, 79, 235);
+        doc.setLineWidth(0.5);
+        doc.line(14, 25, 196, 25);
+
+        doc.setFontSize(12);
+        doc.setTextColor(60, 60, 60);
+        doc.text(`Title: ${titleText}`, 14, 35);
+        doc.text(`Date: ${new Date().toLocaleString()}`, 14, 42);
+
+        // Summary Statistics Table
+        doc.autoTable({
+            startY: 50,
+            head: [['Sentiment Metric', 'Count/Value']],
+            body: [
+                ['Positive Comments', counts.positive],
+                ['Negative Comments', counts.negative],
+                ['Neutral Comments', counts.neutral],
+                ['Total Analyzed', counts.total],
+                ['Success Rate', counts.total > 0 ? `${((counts.positive / counts.total) * 100).toFixed(1)}%` : '0%']
+            ],
+            theme: 'striped',
+            headStyles: { fillColor: [67, 79, 235] }
         });
-    });
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${title.replace(/[^a-z0-9]/gi, '_')}_analysis.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+        // Capture Charts (if visible)
+        const barCanvas = document.getElementById('barChart');
+        if (barCanvas) {
+            try {
+                const barImg = barCanvas.toDataURL('image/png', 1.0);
+                doc.addPage();
+                doc.setFontSize(16);
+                doc.setTextColor(67, 79, 235);
+                doc.text('Visual Sentiment Distribution', 14, 20);
+                doc.addImage(barImg, 'PNG', 15, 30, 180, 90);
+
+                const pieCanvas = document.getElementById('pieChart');
+                if (pieCanvas) {
+                    const pieImg = pieCanvas.toDataURL('image/png', 1.0);
+                    doc.text('Sentiment Breakdown (%)', 14, 135);
+                    doc.addImage(pieImg, 'PNG', 55, 140, 100, 100);
+                }
+            } catch (chartErr) {
+                console.warn("Chart capture failed, skipping charts in PDF:", chartErr);
+            }
+        }
+
+        // Detailed Comments Table (Sample)
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.setTextColor(67, 79, 235);
+        doc.text('Comment Details (Sample)', 14, 20);
+
+        const tableBody = [];
+        ['positive', 'negative', 'neutral'].forEach(sentiment => {
+            const comments = resultsObj[sentiment] || [];
+            comments.slice(0, 20).forEach(comment => {
+                tableBody.push([sentiment.toUpperCase(), comment]);
+            });
+        });
+
+        if (tableBody.length > 0) {
+            doc.autoTable({
+                startY: 30,
+                head: [['Sentiment', 'Comment Text']],
+                body: tableBody.slice(0, 100),
+                styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                columnStyles: {
+                    0: { cellWidth: 25, fontStyle: 'bold' },
+                    1: { cellWidth: 'auto' }
+                }
+            });
+        } else {
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text('No detailed comments available for export.', 14, 30);
+        }
+
+        // Page Numbering Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Page ${i} of ${pageCount} | Universal Sentiment Analysis Project`, 105, 290, { align: 'center' });
+        }
+
+        doc.save(`${titleText.replace(/[^a-z0-9]/gi, '_')}_Report.pdf`);
+    } catch (err) {
+        console.error("PDF Export Error:", err);
+        alert("Attention: Failed to generate PDF. Falling back to CSV.");
+        // Simple CSV fallback
+        const counts = currentResults.counts || { positive: 0, negative: 0, neutral: 0, total: 0 };
+        let csv = 'Sentiment,Count\n';
+        csv += `Positive,${counts.positive}\nNegative,${counts.negative}\nNeutral,${counts.neutral}\n`;
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'sentiment_report.csv';
+        a.click();
+    }
 }
 
 function escapeHtml(text) {
